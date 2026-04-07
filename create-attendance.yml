@@ -1,0 +1,24 @@
+name: Create Daily Attendance Rows
+
+on:
+  schedule:
+    - cron: '30 18 * * *'  # Midnight IST (6:30 PM UTC previous day), every day
+  workflow_dispatch:        # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  create-attendance:
+    runs-on: macos-latest   # Swift is pre-installed on macOS runners
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Run
+        env:
+          NOTION_TOKEN:     ${{ secrets.NOTION_TOKEN }}
+          STUDENTS_DB_ID:   ${{ secrets.STUDENTS_DB_ID }}
+          ATTENDANCE_DB_ID: ${{ secrets.ATTENDANCE_DB_ID }}
+        run: .build/release/NotionAttendance
