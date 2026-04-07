@@ -13,7 +13,7 @@ enum StudentsProps {
 }
 
 enum AttendanceProps {
-    static let name    = "Status Note"    // Title field e.g. "A - Apr 7"
+    static let statusNote    = "Status Note"    // Title field e.g. "A - Apr 7"
     static let student = "Student" // Relation → Students DB
     static let date    = "Date"    // Date field
     static let class_  = "Class"   // Select field (direct, not rollup)
@@ -75,17 +75,6 @@ func todayIST() -> String {
     return String(format: "%04d-%02d-%02d", comps.year!, comps.month!, comps.day!)
 }
 
-/// Returns a short label like "Apr 7" for the row title
-func shortDate(from iso: String) -> String {
-    let df = DateFormatter()
-    df.dateFormat = "yyyy-MM-dd"
-    df.timeZone = TimeZone(identifier: "Asia/Kolkata")
-    guard let date = df.date(from: iso) else { return iso }
-    let out = DateFormatter()
-    out.dateFormat = "MMM d"
-    out.timeZone = TimeZone(identifier: "Asia/Kolkata")
-    return out.string(from: date)
-}
 
 func getTitle(_ page: [String: Any], field: String) -> String {
     let props = page["properties"] as? [String: Any] ?? [:]
@@ -112,7 +101,6 @@ func getRelationIDs(_ page: [String: Any], field: String) -> [String] {
 
 let notion    = NotionClient(token: notionToken)
 let today     = todayIST()
-let shortDay  = shortDate(from: today)
 
 print("Running for date: \(today)")
 
@@ -139,8 +127,8 @@ for student in students {
     let studentClass = getSelect(student, field: StudentsProps.class_)
 
     var properties: [String: Any] = [
-        AttendanceProps.name: [
-            "title": [["text": ["content": "\(studentName) - \(shortDay)"]]]
+        AttendanceProps.statusNote: [
+            "title": []
         ],
         AttendanceProps.student: [
             "relation": [["id": studentID]]
