@@ -16,7 +16,7 @@ enum AttendanceProps {
     static let statusNote    = "Status Note"    // Title field e.g. "A - Apr 7"
     static let student = "Student" // Relation → Students DB
     static let date    = "Date"    // Date field
-    static let class_  = "Class"   // Select field (direct, not rollup)
+    static let class_  = "Class"   // Rollup from Students DB (read-only, auto-populated)
     static let status  = "Status"  // Select field: Present / Absent / Late
 }
 
@@ -126,7 +126,7 @@ for student in students {
     let studentName  = getTitle(student, field: StudentsProps.name)
     let studentClass = getSelect(student, field: StudentsProps.class_)
 
-    var properties: [String: Any] = [
+    let properties: [String: Any] = [
         AttendanceProps.statusNote: [
             "title": []
         ],
@@ -137,10 +137,6 @@ for student in students {
             "date": ["start": today]
         ],
     ]
-
-    if let cls = studentClass {
-        properties[AttendanceProps.class_] = ["select": ["name": cls]]
-    }
 
     try await notion.createPage(databaseID: attendanceDBID, properties: properties)
     print("✓ Created: \(studentName) (\(studentClass ?? "No class"))")
