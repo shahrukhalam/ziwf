@@ -1,0 +1,24 @@
+name: Create Daily Leave Rows
+
+on:
+  schedule:
+    - cron: '30 18 * * *'  # Midnight IST (6:30 PM UTC), every day
+  workflow_dispatch:        # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  create-leaves:
+    runs-on: macos-latest   # Swift is pre-installed on macOS runners
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build -c release --product Leaves
+
+      - name: Run
+        env:
+          NOTION_TOKEN:   ${{ secrets.NOTION_TOKEN }}
+          STUDENTS_DB_ID: ${{ secrets.STUDENTS_DB_ID }}
+          LEAVES_DB_ID:   ${{ secrets.LEAVES_DB_ID }}
+        run: .build/release/Leaves

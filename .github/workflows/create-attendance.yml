@@ -2,7 +2,7 @@ name: Create Daily Attendance Rows
 
 on:
   schedule:
-    - cron: '30 18 * * *'  # Midnight IST (6:30 PM UTC previous day), every day
+    - cron: '30 18 * * *'  # Midnight IST (6:30 PM UTC), every day
   workflow_dispatch:        # Allow manual trigger from GitHub Actions UI
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build
-        run: swift build -c release
+        run: swift build -c release --product Attendance
 
       - name: Run
         env:
@@ -22,4 +22,4 @@ jobs:
           STUDENTS_DB_ID:   ${{ secrets.STUDENTS_DB_ID }}
           ATTENDANCE_DB_ID: ${{ secrets.ATTENDANCE_DB_ID }}
           LEAVES_DB_ID:     ${{ secrets.LEAVES_DB_ID }}
-        run: .build/release/NotionAttendance
+        run: .build/release/Attendance
