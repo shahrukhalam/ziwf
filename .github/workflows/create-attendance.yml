@@ -21,4 +21,5 @@ jobs:
           NOTION_TOKEN:     ${{ secrets.NOTION_TOKEN }}
           STUDENTS_DB_ID:   ${{ secrets.STUDENTS_DB_ID }}
           ATTENDANCE_DB_ID: ${{ secrets.ATTENDANCE_DB_ID }}
+          LEAVES_DB_ID:     ${{ secrets.LEAVES_DB_ID }}
         run: .build/release/NotionAttendance
