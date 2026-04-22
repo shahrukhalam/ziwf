@@ -5,19 +5,26 @@ import Foundation
 let notionToken    = ProcessInfo.processInfo.environment["NOTION_TOKEN"]    ?? ""
 let studentsDBID   = ProcessInfo.processInfo.environment["STUDENTS_DB_ID"]  ?? ""
 let attendanceDBID = ProcessInfo.processInfo.environment["ATTENDANCE_DB_ID"] ?? ""
+let leavesDBID     = ProcessInfo.processInfo.environment["LEAVES_DB_ID"]    ?? ""
 
 // Exact property names as they appear in your Notion databases
 enum StudentsProps {
-    static let name  = "Name"   // Title field
-    static let class_ = "Class" // Select field
+    static let name   = "Name"   // Title field
+    static let class_ = "Class"  // Select field
 }
 
 enum AttendanceProps {
-    static let statusNote    = "Status Note"    // Title field e.g. "A - Apr 7"
-    static let student = "Student" // Relation → Students DB
-    static let date    = "Date"    // Date field
-    static let class_  = "Class"   // Rollup from Students DB (read-only, auto-populated)
-    static let status  = "Status"  // Select field: Present / Absent / Late
+    static let statusNote = "Status Note"    // Title field e.g. "A - Apr 7"
+    static let student    = "Student"        // Relation → Students DB
+    static let date       = "Date"           // Date field
+    static let class_     = "Class"          // Rollup from Students DB (read-only, auto-populated)
+    static let status     = "Status"         // Select field: Present / Absent / Late / On Leave
+}
+
+enum LeavesProps {
+    static let student = "Student"   // Relation → Students DB
+    static let fromTo  = "From - To" // Date range field
+    static let reason  = "Reason"    // URL/Text field
 }
 
 // ─── Notion API Client ─────────────────────────────────────────────────────
@@ -62,6 +69,7 @@ struct NotionClient {
             "properties": properties
         ])
     }
+
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -97,6 +105,16 @@ func getRelationIDs(_ page: [String: Any], field: String) -> [String] {
     return relation.compactMap { $0["id"] as? String }
 }
 
+/// Returns (start, end?) for a date-range property; end is nil if no end date set
+func getDateRange(_ page: [String: Any], field: String) -> (start: String, end: String?)? {
+    let props = page["properties"] as? [String: Any] ?? [:]
+    let prop  = props[field] as? [String: Any] ?? [:]
+    let date  = prop["date"] as? [String: Any] ?? [:]
+    guard let start = date["start"] as? String else { return nil }
+    let end = date["end"] as? String
+    return (start, end)
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 let notion    = NotionClient(token: notionToken)
@@ -108,7 +126,23 @@ print("Running for date: \(today)")
 let students = try await notion.queryAll(databaseID: studentsDBID)
 print("Found \(students.count) students")
 
-// 2. Fetch today's existing attendance rows to avoid duplicates
+// 2. Fetch today's leaves — filter where leave starts on or before today,
+//    then keep only entries whose end date is today or later (or has no end date)
+let leavePages = try await notion.queryAll(
+    databaseID: leavesDBID,
+    filter: ["property": LeavesProps.fromTo, "date": ["on_or_before": today]]
+)
+let studentsOnLeave: Set<String> = Set(
+    leavePages.compactMap { page -> String? in
+        guard let range = getDateRange(page, field: LeavesProps.fromTo) else { return nil }
+        // Include if end date is nil (single-day leave) or end >= today
+        guard range.end == nil || range.end! >= today else { return nil }
+        return getRelationIDs(page, field: LeavesProps.student).first
+    }
+)
+print("Students on leave today: \(studentsOnLeave.count)")
+
+// 3. Fetch today's existing attendance rows to avoid duplicates
 let existing = try await notion.queryAll(
     databaseID: attendanceDBID,
     filter: ["property": AttendanceProps.date, "date": ["equals": today]]
@@ -117,7 +151,7 @@ let existing = try await notion.queryAll(
 let alreadyCreated = Set(existing.flatMap { getRelationIDs($0, field: AttendanceProps.student) })
 print("Already created today: \(alreadyCreated.count) rows")
 
-// 3. Create missing rows
+// 4. Create missing rows
 var created = 0
 for student in students {
     let studentID = student["id"] as! String
@@ -125,8 +159,9 @@ for student in students {
 
     let studentName  = getTitle(student, field: StudentsProps.name)
     let studentClass = getSelect(student, field: StudentsProps.class_)
+    let onLeave      = studentsOnLeave.contains(studentID)
 
-    let properties: [String: Any] = [
+    var properties: [String: Any] = [
         AttendanceProps.statusNote: [
             "title": []
         ],
@@ -138,8 +173,12 @@ for student in students {
         ],
     ]
 
+    if onLeave {
+        properties[AttendanceProps.status] = ["select": ["name": "On Leave"]]
+    }
+
     try await notion.createPage(databaseID: attendanceDBID, properties: properties)
-    print("✓ Created: \(studentName) (\(studentClass ?? "No class"))")
+    print("✓ Created: \(studentName) (\(studentClass ?? "No class"))\(onLeave ? " — On Leave" : "")")
     created += 1
 }
 
