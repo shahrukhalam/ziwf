@@ -46,15 +46,21 @@ public struct NotionClient {
         return try JSONSerialization.jsonObject(with: data) as! [String: Any]
     }
 
-    /// Fetches all pages from a paginated Notion database query
+    /// Fetches all pages from a data source, resolving the data source ID from the database first
     public func queryAll(databaseID: String, filter: [String: Any]? = nil) async throws -> [[String: Any]] {
+        let db = try await request(method: "GET", path: "/databases/\(databaseID)")
+        let dataSources = db["data_sources"] as? [[String: Any]] ?? []
+        guard let dataSourceID = dataSources.first?["id"] as? String else {
+            throw NSError(domain: "NotionClient", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data source found for database \(databaseID)"])
+        }
+
         var pages: [[String: Any]] = []
         var cursor: String? = nil
         repeat {
             var body: [String: Any] = ["page_size": 100]
             if let filter { body["filter"] = filter }
             if let cursor { body["start_cursor"] = cursor }
-            let res = try await request(method: "POST", path: "/databases/\(databaseID)/query", body: body)
+            let res = try await request(method: "POST", path: "/data_sources/\(dataSourceID)/query", body: body)
             let results = res["results"] as? [[String: Any]] ?? []
             pages.append(contentsOf: results)
             cursor = (res["has_more"] as? Bool == true) ? res["next_cursor"] as? String : nil
