@@ -38,7 +38,7 @@ public struct NotionClient {
         req.httpMethod = method
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("2022-06-28", forHTTPHeaderField: "Notion-Version")
+        req.setValue("2026-03-11", forHTTPHeaderField: "Notion-Version")
         if let body {
             req.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
@@ -64,14 +64,15 @@ public struct NotionClient {
 
     public func createPage(databaseID: String, properties: [String: Any]) async throws {
         _ = try await request(method: "POST", path: "/pages", body: [
-            "parent": ["database_id": databaseID],
-            "properties": properties
+            "parent":     ["database_id": databaseID],
+            "properties": properties,
+            "template":   ["type": "default"]
         ])
     }
 
-    public func archivePage(pageID: String) async throws {
+    public func deletePage(pageID: String) async throws {
         _ = try await request(method: "PATCH", path: "/pages/\(pageID)", body: [
-            "archived": true
+            "in_trash": true
         ])
     }
 }

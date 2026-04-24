@@ -16,7 +16,7 @@ let yesterdayMidnight = yesterdayMidnightIST()
 
 print("Running for date: \(today)")
 
-// 1. Archive yesterday's pages with empty From - To (no leave was marked)
+// 1. Delete yesterday's pages with empty From - To (no leave was marked)
 let stalePages = try await notion.queryAll(
     databaseID: leavesDBID,
     filter: [
@@ -27,10 +27,10 @@ let stalePages = try await notion.queryAll(
         ]
     ]
 )
-print("Archiving \(stalePages.count) empty pages from yesterday")
+print("Deleting \(stalePages.count) empty pages from yesterday")
 for page in stalePages {
     let pageID = page["id"] as! String
-    try await notion.archivePage(pageID: pageID)
+    try await notion.deletePage(pageID: pageID)
 }
 
 // 2. Fetch all students
