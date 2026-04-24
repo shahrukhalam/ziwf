@@ -56,7 +56,7 @@ for student in students {
     let onLeave      = studentsOnLeave.contains(studentID)
 
     var properties: [String: Any] = [
-        AttendanceProps.statusNote: [
+        AttendanceProps.remarks: [
             "title": []
         ],
         AttendanceProps.student: [

@@ -9,7 +9,7 @@ public enum StudentsProps {
 }
 
 public enum AttendanceProps {
-    public static let statusNote = "Status Note"    // Title field e.g. "A - Apr 7"
+    public static let remarks    = "Remarks"         // Title field
     public static let student    = "Student"        // Relation → Students DB
     public static let date       = "Date"           // Date field
     public static let class_     = "Class"          // Rollup from Students DB (read-only, auto-populated)
