@@ -28,8 +28,9 @@ let leavePages = try await notion.queryAll(
 let studentsOnLeave: Set<String> = Set(
     leavePages.compactMap { page -> String? in
         guard let range = getDateRange(page, field: LeavesProps.fromTo) else { return nil }
-        // Include if end date is nil (single-day leave) or end >= today
-        guard range.end == nil || range.end! >= today else { return nil }
+        // Single-day leave: start must equal today. Multi-day leave: end must be >= today.
+        let isActive = range.end != nil ? range.end! >= today : range.start == today
+        guard isActive else { return nil }
         return getRelationIDs(page, field: LeavesProps.student).first
     }
 )
