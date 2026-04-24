@@ -25,15 +25,8 @@ let leavePages = try await notion.queryAll(
     databaseID: leavesDBID,
     filter: ["property": LeavesProps.fromTo, "date": ["on_or_before": today]]
 )
-let studentsOnLeave: Set<String> = Set(
-    leavePages.compactMap { page -> String? in
-        guard let range = getDateRange(page, field: LeavesProps.fromTo) else { return nil }
-        // Single-day leave: start must equal today. Multi-day leave: end must be >= today.
-        let isActive = range.end != nil ? range.end! >= today : range.start == today
-        guard isActive else { return nil }
-        return getRelationIDs(page, field: LeavesProps.student).first
-    }
-)
+
+let studentsOnLeave = students_on_leave(from: leavePages, today: today)
 print("Students on leave today: \(studentsOnLeave.count)")
 
 // 3. Fetch today's existing attendance rows to avoid duplicates

@@ -142,3 +142,15 @@ public func getDateRange(_ page: [String: Any], field: String) -> (start: String
     let end = date["end"] as? String
     return (start, end)
 }
+
+/// Returns the set of student IDs who are on leave on `today` given raw leave pages from the Leaves DB.
+/// Single-day leave (no end date): active only if start == today.
+/// Multi-day leave: active if start <= today (pre-filtered by API) and end >= today.
+public func students_on_leave(from leavePages: [[String: Any]], today: String) -> Set<String> {
+    Set(leavePages.compactMap { page -> String? in
+        guard let range = getDateRange(page, field: LeavesProps.fromTo) else { return nil }
+        let isActive = range.end != nil ? range.end! >= today : range.start == today
+        guard isActive else { return nil }
+        return getRelationIDs(page, field: LeavesProps.student).first
+    })
+}

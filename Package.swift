@@ -22,5 +22,10 @@ let package = Package(
             dependencies: ["Shared"],
             path: "Sources/Leaves"
         ),
+        .testTarget(
+            name: "ziwfTests",
+            dependencies: ["Shared"],
+            path: "Tests"
+        ),
     ]
 )
