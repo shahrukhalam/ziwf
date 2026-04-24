@@ -1,15 +1,9 @@
 import Foundation
 import Shared
 
-// ─── Config ────────────────────────────────────────────────────────────────
-
-let notionToken  = ProcessInfo.processInfo.environment["NOTION_TOKEN"]   ?? ""
-let studentsDBID = ProcessInfo.processInfo.environment["STUDENTS_DB_ID"] ?? ""
-let leavesDBID   = ProcessInfo.processInfo.environment["LEAVES_DB_ID"]   ?? ""
-
 // ─── Main ──────────────────────────────────────────────────────────────────
 
-let notion            = NotionClient(token: notionToken)
+let notion            = NotionClient(token: Config.notionToken)
 let today             = todayIST()
 let todayMidnight     = todayMidnightIST()
 let yesterdayMidnight = yesterdayMidnightIST()
@@ -18,7 +12,7 @@ print("Running for date: \(today)")
 
 // 1. Delete yesterday's pages with empty From - To (no leave was marked)
 let stalePages = try await notion.queryAll(
-    databaseID: leavesDBID,
+    databaseID: Config.leavesDBID,
     filter: [
         "and": [
             ["timestamp": "created_time", "created_time": ["on_or_after": yesterdayMidnight]],
@@ -34,12 +28,12 @@ for page in stalePages {
 }
 
 // 2. Fetch all students
-let students = try await notion.queryAll(databaseID: studentsDBID)
+let students = try await notion.queryAll(databaseID: Config.studentsDBID)
 print("Found \(students.count) students")
 
 // 3. Fetch today's already-created leave pages to avoid duplicates
 let existingToday = try await notion.queryAll(
-    databaseID: leavesDBID,
+    databaseID: Config.leavesDBID,
     filter: ["timestamp": "created_time", "created_time": ["on_or_after": todayMidnight]]
 )
 let alreadyCreated = Set(existingToday.flatMap { getRelationIDs($0, field: LeavesProps.student) })
@@ -63,7 +57,7 @@ for student in students {
         ],
     ]
 
-    try await notion.createPage(databaseID: leavesDBID, properties: properties)
+    try await notion.createPage(databaseID: Config.leavesDBID, properties: properties)
     print("✓ Created: \(studentName) (\(studentClass ?? "No class"))")
     created += 1
 }

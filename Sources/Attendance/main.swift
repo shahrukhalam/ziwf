@@ -1,28 +1,20 @@
 import Foundation
 import Shared
 
-// ─── Config ────────────────────────────────────────────────────────────────
-
-let notionToken    = ProcessInfo.processInfo.environment["NOTION_TOKEN"]    ?? ""
-let studentsDBID   = ProcessInfo.processInfo.environment["STUDENTS_DB_ID"]  ?? ""
-let attendanceDBID = ProcessInfo.processInfo.environment["ATTENDANCE_DB_ID"] ?? ""
-let leavesDBID     = ProcessInfo.processInfo.environment["LEAVES_DB_ID"]    ?? ""
-
 // ─── Main ──────────────────────────────────────────────────────────────────
 
-let notion = NotionClient(token: notionToken)
+let notion = NotionClient(token: Config.notionToken)
 let today  = todayIST()
 
 print("Running for date: \(today)")
 
 // 1. Fetch all students
-let students = try await notion.queryAll(databaseID: studentsDBID)
+let students = try await notion.queryAll(databaseID: Config.studentsDBID)
 print("Found \(students.count) students")
 
-// 2. Fetch today's leaves — filter where leave starts on or before today,
-//    then keep only entries whose end date is today or later (or has no end date)
+// 2. Fetch today's leaves
 let leavePages = try await notion.queryAll(
-    databaseID: leavesDBID,
+    databaseID: Config.leavesDBID,
     filter: ["property": LeavesProps.fromTo, "date": ["on_or_before": today]]
 )
 
@@ -31,7 +23,7 @@ print("Students on leave today: \(studentsOnLeave.count)")
 
 // 3. Fetch today's existing attendance rows to avoid duplicates
 let existing = try await notion.queryAll(
-    databaseID: attendanceDBID,
+    databaseID: Config.attendanceDBID,
     filter: ["property": AttendanceProps.date, "date": ["equals": today]]
 )
 
@@ -64,7 +56,7 @@ for student in students {
         properties[AttendanceProps.status] = ["select": ["name": "On Leave"]]
     }
 
-    try await notion.createPage(databaseID: attendanceDBID, properties: properties)
+    try await notion.createPage(databaseID: Config.attendanceDBID, properties: properties)
     print("✓ Created: \(studentName) (\(studentClass ?? "No class"))\(onLeave ? " — On Leave" : "")")
     created += 1
 }
